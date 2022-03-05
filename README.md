@@ -12,6 +12,12 @@ mkdir cmd
 touch cmd/main.go
 ```
 
+## 環境変数設定
+```sh
+# Botのトークン
+export DISCORD_BOT_TOKEN=xxx
+```
+
 ## ビルド&実行
 ```sh
 go mod tidy
