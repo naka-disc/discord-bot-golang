@@ -27,10 +27,11 @@ func main() {
 
 	// イベントのコールバックを登録する
 	dg.AddHandler(messageCreate)
+	dg.AddHandler(voiceStateUpdate)
 
 	// Discordセッションの権限付与
-	// IntentsGuildMessages はメッセージイベントに関するもの
-	dg.Identify.Intents = discordgo.IntentsGuildMessages
+	// TODO: 適切な権限付与の方がいいと思うが、面倒なので全部の権限を与えている
+	dg.Identify.Intents = discordgo.IntentsAllWithoutPrivileged
 
 	// WebSocketコネクションを確立し、双方向通信できるようにする
 	err = dg.Open()
@@ -63,5 +64,30 @@ func messageCreate(session *discordgo.Session, msgCreate *discordgo.MessageCreat
 	// メッセージ内容が ping だったら Pong! をメッセージとして送信
 	if msgCreate.Content == "ping" {
 		session.ChannelMessageSend(msgCreate.ChannelID, "Pong!")
+	}
+}
+
+/*
+Dicordセッションに追加するコールバック関数。
+
+voiceStateUpdate: VoiceChannelに入退室した時にキックされる処理。
+*/
+func voiceStateUpdate(session *discordgo.Session, voiceState *discordgo.VoiceStateUpdate) {
+	// TODO: イベントフックだけで、実処理が書けていない
+
+	// 入退室のどちらかを取得
+	// 退室時のステートはChannelIDがブランクになってるのでそれで判断
+	channelId := voiceState.VoiceState.ChannelID
+	isJoin := (channelId != "")
+
+	// 入室か退室かで処理を分岐
+	if isJoin {
+		// 入室時の処理
+		fmt.Println("Join")
+
+	} else {
+		// 退室時の処理
+		fmt.Println("Leave.")
+
 	}
 }
