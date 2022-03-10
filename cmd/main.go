@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"naka-disc/discord-bot-golang/internal/app/entity"
 	dateutil "naka-disc/discord-bot-golang/internal/app/util/DateUtil"
 	"os"
 	"os/signal"
@@ -22,7 +23,7 @@ func init() {
 	if err != nil {
 		panic("failed to connect database")
 	}
-	db.AutoMigrate(&VcAccessLog{})
+	db.AutoMigrate(entity.NewVcAccessLogs())
 }
 
 // エントリーポイント。
@@ -81,8 +82,6 @@ func messageCreate(session *discordgo.Session, msgCreate *discordgo.MessageCreat
 // Dicordセッションに追加するコールバック関数。
 // voiceStateUpdate: VoiceChannelに入退室した時にキックされる処理。
 func voiceStateUpdate(session *discordgo.Session, voiceState *discordgo.VoiceStateUpdate) {
-	// TODO: イベントフックだけで、実処理が書けていない
-
 	// 入退室のどちらかを取得
 	// 退室時のステートはChannelIDがブランクになってるのでそれで判断
 	isJoin := (voiceState.VoiceState.ChannelID != "")
@@ -95,7 +94,7 @@ func voiceStateUpdate(session *discordgo.Session, voiceState *discordgo.VoiceSta
 		// 入室時は退室日時と滞在時間以外を登録
 		// TODO: voiceStateにユーザー名とかがないので登録してない
 		// どこかしらでユーザー情報を取得して、DiscordMemberTableとか作ってリレーション張った方がいいかも
-		entity := NewVcAccessLogs()
+		entity := entity.NewVcAccessLogs()
 		entity.DiscordMemberId = voiceState.VoiceState.UserID
 		entity.VoiceChannelId = voiceState.ChannelID
 		entity.JoinDatetime = dateutil.GetNowString()
@@ -118,7 +117,7 @@ func voiceStateUpdate(session *discordgo.Session, voiceState *discordgo.VoiceSta
 
 		// ユーザーID、VCIDの一致と、退室日時が空という条件でデータを取れば、入室時のデータが取れる
 		// 入室がなくて退室にきた、というケースは想定しない というかあり得ない
-		entity := NewVcAccessLogs()
+		entity := entity.NewVcAccessLogs()
 		userId := voiceState.VoiceState.UserID
 		channelId := voiceState.BeforeUpdate.ChannelID
 		d := db.Limit(1).Find(&entity, "discord_member_id = ? AND voice_channel_id = ? AND leave_datetime = ''", userId, channelId)
@@ -142,22 +141,4 @@ func voiceStateUpdate(session *discordgo.Session, voiceState *discordgo.VoiceSta
 			map[string]interface{}{"leave_datetime": leavetime, "stay_second": staySecond})
 
 	}
-}
-
-// ボイスチャンネルへの入退室を記録するための構造体モデル
-type VcAccessLog struct {
-	Id                         uint   `gorm:"primarykey"`
-	DiscordMemberId            string // Discordユーザーに与えられる一意のID
-	DiscordMemberName          string // Discordユーザー名
-	DiscordMemberDiscriminator string // Discordユーザーの#0000の番号 正直いらない
-	VoiceChannelId             string // ボイスチャンネルID
-	JoinDatetime               string // 入室日時
-	LeaveDatetime              string // 退室日時
-	StaySecond                 uint   // 滞在時間(秒)
-}
-
-// VcAccessLogのコンストラクタ用処理
-func NewVcAccessLogs() *VcAccessLog {
-	ret := new(VcAccessLog)
-	return ret
 }
