@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"naka-disc/discord-bot-golang/internal/app/dao"
 	"naka-disc/discord-bot-golang/internal/app/entity"
 	"naka-disc/discord-bot-golang/internal/app/util/dateutil"
 	"os"
@@ -99,46 +100,28 @@ func voiceStateUpdate(session *discordgo.Session, voiceState *discordgo.VoiceSta
 		saveEntity.VoiceChannelId = voiceState.ChannelID
 		saveEntity.JoinDatetime = dateutil.GetNowString()
 
-		db, err := gorm.Open(sqlite.Open("database/database.sqlite"), &gorm.Config{})
-		if err != nil {
-			panic("failed to connect database")
-		}
-		db.Create(&saveEntity)
+		valDAO := dao.NewVcAccessLogDAO()
+		valDAO.AddVcAccessLog(saveEntity)
 
 	} else {
 		// 退室時の処理
 		fmt.Println("Leave.")
 
 		// 退室時は、直近の入室のみデータを引っ張ってきて、それに退室情報を追加して更新をかける
-		db, err := gorm.Open(sqlite.Open("database/database.sqlite"), &gorm.Config{})
-		if err != nil {
-			panic("failed to connect database")
-		}
-
-		// ユーザーID、VCIDの一致と、退室日時が空という条件でデータを取れば、入室時のデータが取れる
-		// 入室がなくて退室にきた、というケースは想定しない というかあり得ない
-		saveEntity := entity.NewVcAccessLog()
-		userId := voiceState.VoiceState.UserID
+		memberId := voiceState.VoiceState.UserID
 		channelId := voiceState.BeforeUpdate.ChannelID
-		d := db.Limit(1).Find(&saveEntity, "discord_member_id = ? AND voice_channel_id = ? AND leave_datetime = ''", userId, channelId)
-
-		// RowsAffectedが1のときはある、0の時はないので終了
-		if d.RowsAffected == 0 {
-			fmt.Println("Record Not Found")
+		valDAO := dao.NewVcAccessLogDAO()
+		getEntity, ok := valDAO.GetVcAccessLogForNotLeave(channelId, memberId)
+		if !ok {
+			// データ取得できなかったので終了
 			return
 		}
 
-		// 退室日時と、滞在時間を
-		// TODO: 日付文字列をstringに変換 エラーは可能性としてあるが、一旦無視してる リファクタリング時に考える
+		// 退室日時と滞在時間を更新
+		// 滞在時間を計算できなかった場合も更新 退室日時がわかっていればあとから計算して後付けが可能なため
 		leavetime := dateutil.GetNowString()
-		staySecond, ok := dateutil.DiffSecond(saveEntity.JoinDatetime, leavetime)
-		if !ok {
-			// TODO: 失敗時どうするか
-		}
-
-		// 退室日時と滞在時間を入れて更新かける
-		db.Model(&saveEntity).Updates(
-			map[string]interface{}{"leave_datetime": leavetime, "stay_second": staySecond})
-
+		staySecond, _ := dateutil.DiffSecond(getEntity.JoinDatetime, leavetime)
+		overrideMap := map[string]interface{}{"leave_datetime": leavetime, "stay_second": staySecond}
+		valDAO.EditVcAccessLog(getEntity, overrideMap)
 	}
 }
