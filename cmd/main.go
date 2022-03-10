@@ -5,14 +5,24 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 
 	"github.com/bwmarrin/discordgo"
+	"gorm.io/driver/sqlite"
+	"gorm.io/gorm"
 )
 
 // 初期処理。
 // エントリーポイントのmain関数の前に実行される。
 func init() {
 	fmt.Println("naka-disc/discord-bot-golang init")
+
+	// TODO: DBのマイグレーション処理を暫定でここに挿入 別途コマンドとかにした方が良さげ
+	db, err := gorm.Open(sqlite.Open("database/database.sqlite"), &gorm.Config{})
+	if err != nil {
+		panic("failed to connect database")
+	}
+	db.AutoMigrate(&VcAccessLog{})
 }
 
 // エントリーポイント。
@@ -75,17 +85,78 @@ func voiceStateUpdate(session *discordgo.Session, voiceState *discordgo.VoiceSta
 
 	// 入退室のどちらかを取得
 	// 退室時のステートはChannelIDがブランクになってるのでそれで判断
-	channelId := voiceState.VoiceState.ChannelID
-	isJoin := (channelId != "")
+	isJoin := (voiceState.VoiceState.ChannelID != "")
 
 	// 入室か退室かで処理を分岐
 	if isJoin {
 		// 入室時の処理
-		fmt.Println("Join")
+		fmt.Println("Join.")
+
+		// 入室時は退室日時と滞在時間以外を登録
+		// TODO: voiceStateにユーザー名とかがないので登録してない
+		// どこかしらでユーザー情報を取得して、DiscordMemberTableとか作ってリレーション張った方がいいかも
+		entity := NewVcAccessLogs()
+		entity.DiscordMemberId = voiceState.VoiceState.UserID
+		entity.VoiceChannelId = voiceState.ChannelID
+		entity.JoinDatetime = time.Now().Format("2006/01/02 15:04:05")
+
+		db, err := gorm.Open(sqlite.Open("database/database.sqlite"), &gorm.Config{})
+		if err != nil {
+			panic("failed to connect database")
+		}
+		db.Create(&entity)
 
 	} else {
 		// 退室時の処理
 		fmt.Println("Leave.")
 
+		// 退室時は、直近の入室のみデータを引っ張ってきて、それに退室情報を追加して更新をかける
+		db, err := gorm.Open(sqlite.Open("database/database.sqlite"), &gorm.Config{})
+		if err != nil {
+			panic("failed to connect database")
+		}
+
+		// ユーザーID、VCIDの一致と、退室日時が空という条件でデータを取れば、入室時のデータが取れる
+		// 入室がなくて退室にきた、というケースは想定しない というかあり得ない
+		entity := NewVcAccessLogs()
+		userId := voiceState.VoiceState.UserID
+		channelId := voiceState.BeforeUpdate.ChannelID
+		d := db.Limit(1).Find(&entity, "discord_member_id = ? AND voice_channel_id = ? AND leave_datetime = ''", userId, channelId)
+
+		// RowsAffectedが1のときはある、0の時はないので終了
+		if d.RowsAffected == 0 {
+			fmt.Println("Record Not Found")
+			return
+		}
+
+		// 退室日時と、滞在時間を
+		// TODO: 日付文字列をstringに変換 エラーは可能性としてあるが、一旦無視してる リファクタリング時に考える
+		leavetime := time.Now().Format("2006/01/02 15:04:05")
+		calcJointime, _ := time.Parse("2006/01/02 15:04:05", entity.JoinDatetime)
+		calcLeavetime, _ := time.Parse("2006/01/02 15:04:05", leavetime)
+		staySecond := calcLeavetime.Sub(calcJointime).Seconds()
+
+		// 退室日時と滞在時間を入れて更新かける
+		db.Model(&entity).Updates(
+			map[string]interface{}{"leave_datetime": leavetime, "stay_second": staySecond})
+
 	}
+}
+
+// ボイスチャンネルへの入退室を記録するための構造体モデル
+type VcAccessLog struct {
+	Id                         uint   `gorm:"primarykey"`
+	DiscordMemberId            string // Discordユーザーに与えられる一意のID
+	DiscordMemberName          string // Discordユーザー名
+	DiscordMemberDiscriminator string // Discordユーザーの#0000の番号 正直いらない
+	VoiceChannelId             string // ボイスチャンネルID
+	JoinDatetime               string // 入室日時
+	LeaveDatetime              string // 退室日時
+	StaySecond                 uint   // 滞在時間(秒)
+}
+
+// VcAccessLogのコンストラクタ用処理
+func NewVcAccessLogs() *VcAccessLog {
+	ret := new(VcAccessLog)
+	return ret
 }
