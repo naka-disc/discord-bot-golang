@@ -3,7 +3,7 @@ package main
 import (
 	"fmt"
 	"naka-disc/discord-bot-golang/internal/app/entity"
-	dateutil "naka-disc/discord-bot-golang/internal/app/util/DateUtil"
+	"naka-disc/discord-bot-golang/internal/app/util/dateutil"
 	"os"
 	"os/signal"
 	"syscall"
