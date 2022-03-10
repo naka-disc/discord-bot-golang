@@ -2,10 +2,10 @@ package main
 
 import (
 	"fmt"
+	dateutil "naka-disc/discord-bot-golang/internal/app/util/DateUtil"
 	"os"
 	"os/signal"
 	"syscall"
-	"time"
 
 	"github.com/bwmarrin/discordgo"
 	"gorm.io/driver/sqlite"
@@ -98,7 +98,7 @@ func voiceStateUpdate(session *discordgo.Session, voiceState *discordgo.VoiceSta
 		entity := NewVcAccessLogs()
 		entity.DiscordMemberId = voiceState.VoiceState.UserID
 		entity.VoiceChannelId = voiceState.ChannelID
-		entity.JoinDatetime = time.Now().Format("2006/01/02 15:04:05")
+		entity.JoinDatetime = dateutil.GetNowString()
 
 		db, err := gorm.Open(sqlite.Open("database/database.sqlite"), &gorm.Config{})
 		if err != nil {
@@ -131,10 +131,11 @@ func voiceStateUpdate(session *discordgo.Session, voiceState *discordgo.VoiceSta
 
 		// 退室日時と、滞在時間を
 		// TODO: 日付文字列をstringに変換 エラーは可能性としてあるが、一旦無視してる リファクタリング時に考える
-		leavetime := time.Now().Format("2006/01/02 15:04:05")
-		calcJointime, _ := time.Parse("2006/01/02 15:04:05", entity.JoinDatetime)
-		calcLeavetime, _ := time.Parse("2006/01/02 15:04:05", leavetime)
-		staySecond := calcLeavetime.Sub(calcJointime).Seconds()
+		leavetime := dateutil.GetNowString()
+		staySecond, ok := dateutil.DiffSecond(entity.JoinDatetime, leavetime)
+		if !ok {
+			// TODO: 失敗時どうするか
+		}
 
 		// 退室日時と滞在時間を入れて更新かける
 		db.Model(&entity).Updates(
