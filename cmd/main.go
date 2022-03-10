@@ -94,16 +94,16 @@ func voiceStateUpdate(session *discordgo.Session, voiceState *discordgo.VoiceSta
 		// 入室時は退室日時と滞在時間以外を登録
 		// TODO: voiceStateにユーザー名とかがないので登録してない
 		// どこかしらでユーザー情報を取得して、DiscordMemberTableとか作ってリレーション張った方がいいかも
-		entity := entity.NewVcAccessLog()
-		entity.DiscordMemberId = voiceState.VoiceState.UserID
-		entity.VoiceChannelId = voiceState.ChannelID
-		entity.JoinDatetime = dateutil.GetNowString()
+		saveEntity := entity.NewVcAccessLog()
+		saveEntity.DiscordMemberId = voiceState.VoiceState.UserID
+		saveEntity.VoiceChannelId = voiceState.ChannelID
+		saveEntity.JoinDatetime = dateutil.GetNowString()
 
 		db, err := gorm.Open(sqlite.Open("database/database.sqlite"), &gorm.Config{})
 		if err != nil {
 			panic("failed to connect database")
 		}
-		db.Create(&entity)
+		db.Create(&saveEntity)
 
 	} else {
 		// 退室時の処理
@@ -117,10 +117,10 @@ func voiceStateUpdate(session *discordgo.Session, voiceState *discordgo.VoiceSta
 
 		// ユーザーID、VCIDの一致と、退室日時が空という条件でデータを取れば、入室時のデータが取れる
 		// 入室がなくて退室にきた、というケースは想定しない というかあり得ない
-		entity := entity.NewVcAccessLog()
+		saveEntity := entity.NewVcAccessLog()
 		userId := voiceState.VoiceState.UserID
 		channelId := voiceState.BeforeUpdate.ChannelID
-		d := db.Limit(1).Find(&entity, "discord_member_id = ? AND voice_channel_id = ? AND leave_datetime = ''", userId, channelId)
+		d := db.Limit(1).Find(&saveEntity, "discord_member_id = ? AND voice_channel_id = ? AND leave_datetime = ''", userId, channelId)
 
 		// RowsAffectedが1のときはある、0の時はないので終了
 		if d.RowsAffected == 0 {
@@ -131,13 +131,13 @@ func voiceStateUpdate(session *discordgo.Session, voiceState *discordgo.VoiceSta
 		// 退室日時と、滞在時間を
 		// TODO: 日付文字列をstringに変換 エラーは可能性としてあるが、一旦無視してる リファクタリング時に考える
 		leavetime := dateutil.GetNowString()
-		staySecond, ok := dateutil.DiffSecond(entity.JoinDatetime, leavetime)
+		staySecond, ok := dateutil.DiffSecond(saveEntity.JoinDatetime, leavetime)
 		if !ok {
 			// TODO: 失敗時どうするか
 		}
 
 		// 退室日時と滞在時間を入れて更新かける
-		db.Model(&entity).Updates(
+		db.Model(&saveEntity).Updates(
 			map[string]interface{}{"leave_datetime": leavetime, "stay_second": staySecond})
 
 	}
