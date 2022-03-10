@@ -9,10 +9,14 @@ import (
 	"github.com/bwmarrin/discordgo"
 )
 
+// 初期処理。
+// エントリーポイントのmain関数の前に実行される。
 func init() {
 	fmt.Println("naka-disc/discord-bot-golang init")
 }
 
+// エントリーポイント。
+// 実行したらここが実行される。
 func main() {
 	// 環境変数からToken取得
 	token := os.Getenv("DISCORD_BOT_TOKEN")
@@ -50,11 +54,8 @@ func main() {
 	<-sc
 }
 
-/*
-Dicordセッションに追加するコールバック関数。
-
-messageCreate: メッセージを受信した時にキックされる処理。
-*/
+// Dicordセッションに追加するコールバック関数。
+// messageCreate: メッセージを受信した時にキックされる処理。
 func messageCreate(session *discordgo.Session, msgCreate *discordgo.MessageCreate) {
 	// DiscordセッションのユーザーID（=BotのID）と発言者のIDが一緒なら何もしない
 	if msgCreate.Author.ID == session.State.User.ID {
@@ -67,11 +68,8 @@ func messageCreate(session *discordgo.Session, msgCreate *discordgo.MessageCreat
 	}
 }
 
-/*
-Dicordセッションに追加するコールバック関数。
-
-voiceStateUpdate: VoiceChannelに入退室した時にキックされる処理。
-*/
+// Dicordセッションに追加するコールバック関数。
+// voiceStateUpdate: VoiceChannelに入退室した時にキックされる処理。
 func voiceStateUpdate(session *discordgo.Session, voiceState *discordgo.VoiceStateUpdate) {
 	// TODO: イベントフックだけで、実処理が書けていない
 
