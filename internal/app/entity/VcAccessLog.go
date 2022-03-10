@@ -14,7 +14,7 @@ type VcAccessLog struct {
 
 // コンストラクタ用処理。
 // この関数を実行してインスタンスを生成すること。
-func NewVcAccessLogs() *VcAccessLog {
+func NewVcAccessLog() *VcAccessLog {
 	ret := new(VcAccessLog)
 	return ret
 }

@@ -23,7 +23,7 @@ func init() {
 	if err != nil {
 		panic("failed to connect database")
 	}
-	db.AutoMigrate(entity.NewVcAccessLogs())
+	db.AutoMigrate(entity.NewVcAccessLog())
 }
 
 // エントリーポイント。
@@ -94,7 +94,7 @@ func voiceStateUpdate(session *discordgo.Session, voiceState *discordgo.VoiceSta
 		// 入室時は退室日時と滞在時間以外を登録
 		// TODO: voiceStateにユーザー名とかがないので登録してない
 		// どこかしらでユーザー情報を取得して、DiscordMemberTableとか作ってリレーション張った方がいいかも
-		entity := entity.NewVcAccessLogs()
+		entity := entity.NewVcAccessLog()
 		entity.DiscordMemberId = voiceState.VoiceState.UserID
 		entity.VoiceChannelId = voiceState.ChannelID
 		entity.JoinDatetime = dateutil.GetNowString()
@@ -117,7 +117,7 @@ func voiceStateUpdate(session *discordgo.Session, voiceState *discordgo.VoiceSta
 
 		// ユーザーID、VCIDの一致と、退室日時が空という条件でデータを取れば、入室時のデータが取れる
 		// 入室がなくて退室にきた、というケースは想定しない というかあり得ない
-		entity := entity.NewVcAccessLogs()
+		entity := entity.NewVcAccessLog()
 		userId := voiceState.VoiceState.UserID
 		channelId := voiceState.BeforeUpdate.ChannelID
 		d := db.Limit(1).Find(&entity, "discord_member_id = ? AND voice_channel_id = ? AND leave_datetime = ''", userId, channelId)
