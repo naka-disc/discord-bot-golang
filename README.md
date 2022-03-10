@@ -3,19 +3,10 @@
 - Go言語で作成。
 
 
-## 作成したときの手順
-```sh
-go mod init naka-disc/discord-bot-golang
-touch README.md
-touch .gitignore
-mkdir cmd
-touch cmd/main.go
-```
-
 ## 環境変数設定
 ```sh
 # Botのトークン
-export DISCORD_BOT_TOKEN=xxx
+export DISCORD_BOT_TOKEN=
 ```
 
 ## ビルド&実行
@@ -35,3 +26,10 @@ go build -o . cmd/*.go
     - BSD-3-Clause
   - [golang.org/x/sys](https://pkg.go.dev/golang.org/x/sys)
     - BSD-3-Clause
+- [gorm.io/gorm](https://pkg.go.dev/gorm.io/gorm)
+  - MIT
+- [gorm.io/driver/sqlite](https://pkg.go.dev/gorm.io/driver/sqlite)
+  - MIT
+
+
+
