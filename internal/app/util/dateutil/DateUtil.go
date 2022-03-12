@@ -11,13 +11,13 @@ import (
 
 // 現在日時をstringで返す。
 func GetNowString() string {
-	return time.Now().Format("2006/01/02 15:04:05")
+	return time.Now().Format("2006-01-02 15:04:05")
 }
 
 // string型の日付をtime.Timeに変換する。
 // 第二戻り値に成否情報をもたせている。
 func ParseStringToTime(datetime string) (time.Time, bool) {
-	parseDatetime, err := time.Parse("2006/01/02 15:04:05", datetime)
+	parseDatetime, err := time.Parse("2006-01-02 15:04:05", datetime)
 	if err != nil {
 		log.Printf("Error ParseStringToTime. value: %s", datetime)
 		return parseDatetime, false
@@ -27,7 +27,7 @@ func ParseStringToTime(datetime string) (time.Time, bool) {
 }
 
 // beforeとafterの差を秒数で返す。
-// beforeもafterも "2006/01/02 15:04:05" の形式であることが前提。
+// beforeもafterも "2006-01-02 15:04:05" の形式であることが前提。
 // 第二戻り値に成否情報をもたせている。
 func DiffSecond(before string, after string) (float64, bool) {
 	convBefore, ok := ParseStringToTime(before)
