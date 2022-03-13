@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"naka-disc/discord-bot-golang/internal/app/dao"
 	"naka-disc/discord-bot-golang/internal/app/entity"
+	"naka-disc/discord-bot-golang/internal/app/service"
 	"naka-disc/discord-bot-golang/internal/app/util/dateutil"
 	"os"
 	"os/signal"
@@ -43,9 +44,9 @@ func main() {
 	}
 
 	// イベントのコールバックを登録する
-	dg.AddHandler(messageCreate)    // メッセージ受信時
-	dg.AddHandler(voiceStateUpdate) // ボイスチャンネルへの入退室時
-	dg.AddHandler(guildMemberAdd)   // サーバーへの入室時
+	dg.AddHandler(service.MessageDispatch) // メッセージ受信時
+	dg.AddHandler(voiceStateUpdate)        // ボイスチャンネルへの入退室時
+	dg.AddHandler(guildMemberAdd)          // サーバーへの入室時
 
 	// Discordセッションの権限付与
 	// TODO: 適切な権限付与の方がいいと思うが、面倒なので全部の権限を与えている
@@ -66,20 +67,6 @@ func main() {
 	sc := make(chan os.Signal, 1)
 	signal.Notify(sc, syscall.SIGINT, syscall.SIGTERM, os.Interrupt, os.Kill)
 	<-sc
-}
-
-// Dicordセッションに追加するコールバック関数。
-// messageCreate: メッセージを受信した時にキックされる処理。
-func messageCreate(session *discordgo.Session, msgCreate *discordgo.MessageCreate) {
-	// DiscordセッションのユーザーID（=BotのID）と発言者のIDが一緒なら何もしない
-	if msgCreate.Author.ID == session.State.User.ID {
-		return
-	}
-
-	// メッセージ内容が ping だったら Pong! をメッセージとして送信
-	if msgCreate.Content == "ping" {
-		session.ChannelMessageSend(msgCreate.ChannelID, "Pong!")
-	}
 }
 
 // Dicordセッションに追加するコールバック関数。
