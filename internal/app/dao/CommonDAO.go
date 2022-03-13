@@ -8,7 +8,8 @@ import (
 )
 
 // GORMのデータベースオブジェクトを取得。
-func GetDatabaseObject() *gorm.DB {
+// daoパッケージ内のみでの使用に留めるため、外には公開しない。
+func getDatabaseObject() *gorm.DB {
 	// TODO: 接続エラーは発生しない想定で組んであるため、エラーハンドリングしていない
 	db, _ := gorm.Open(sqlite.Open("database/database.sqlite"), &gorm.Config{})
 	return db
@@ -17,8 +18,7 @@ func GetDatabaseObject() *gorm.DB {
 // マイグレーション。
 // エンティティを作成したらここに追加することを忘れないように。
 func Migration() {
-	db := GetDatabaseObject()
-	db.AutoMigrate(entity.NewVcAccessLog())
+	db := getDatabaseObject()
 	db.AutoMigrate(entity.NewDiscordMember())
 	db.AutoMigrate(entity.NewVoiceChannelAccessLog())
 }

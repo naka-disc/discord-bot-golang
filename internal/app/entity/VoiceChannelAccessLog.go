@@ -1,7 +1,7 @@
 package entity
 
-// ボイスチャンネルへの入退室を記録するための構造体エンティティ。
-type VcAccessLog struct {
+// ボイスチャンネルへの入退室用エンティティ。
+type VoiceChannelAccessLog struct {
 	Id                         uint   `gorm:"primarykey"`
 	DiscordMemberId            string // Discordユーザーに与えられる一意のID
 	DiscordMemberName          string // Discordユーザー名
@@ -14,7 +14,7 @@ type VcAccessLog struct {
 
 // コンストラクタ用処理。
 // この関数を実行してインスタンスを生成すること。
-func NewVcAccessLog() *VcAccessLog {
-	ret := new(VcAccessLog)
+func NewVoiceChannelAccessLog() *VoiceChannelAccessLog {
+	ret := new(VoiceChannelAccessLog)
 	return ret
 }
