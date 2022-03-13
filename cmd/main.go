@@ -36,9 +36,10 @@ func main() {
 	}
 
 	// イベントのコールバックを登録する
-	dg.AddHandler(service.MessageDispatch)  // メッセージ受信時
-	dg.AddHandler(service.VoiceDispatch)    // ボイスチャンネルへの入退室時
-	dg.AddHandler(service.GuildAddDispatch) // サーバーへの入室時
+	dg.AddHandler(service.MessageDispatch)     // メッセージ受信時
+	dg.AddHandler(service.VoiceDispatch)       // ボイスチャンネルへの入退室時
+	dg.AddHandler(service.GuildAddDispatch)    // サーバーへの入室時
+	dg.AddHandler(service.GuildRemoveDispatch) // サーバーへの退室時
 
 	// Discordセッションの権限付与
 	// TODO: 適切な権限付与の方がいいと思うが、面倒なので全部の権限を与えている

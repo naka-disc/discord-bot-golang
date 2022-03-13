@@ -1,6 +1,7 @@
 package service
 
 import (
+	"log"
 	"naka-disc/discord-bot-golang/internal/app/dao"
 	"naka-disc/discord-bot-golang/internal/app/entity"
 	"naka-disc/discord-bot-golang/internal/app/util/dateutil"
@@ -37,6 +38,27 @@ func GuildAddDispatch(s *discordgo.Session, gma *discordgo.GuildMemberAdd) {
 		e.FirstJoinDatetime = dateutil.GetNowString()
 		e.LastJoinDatetime = dateutil.GetNowString()
 		dao.AddDiscordMember(e)
+
+	}
+}
+
+// サーバー退室時のディスパッチ処理。
+// ディスパッチするほど処理はないが、命名統一のためにディスパッチャ。
+func GuildRemoveDispatch(s *discordgo.Session, dmr *discordgo.GuildMemberRemove) {
+	// FIXME: 起動確認ができていないため、何らかの方法でテストを試したい
+
+	// DiscordのメンバーIDから、メンバー情報取得
+	e, ok := dao.GetDiscordMemberByMemberId(dmr.User.ID)
+
+	if ok {
+		// 存在すれば、退室フラグを立てる
+		om := map[string]interface{}{"is_stay": false}
+		dao.EditDiscordMember(e, om)
+
+	} else {
+		// 存在しないなら何もしない
+		// ここに来ることはないと思うが、きた場合はログだけ出力しておく
+		log.Printf("GuildRemoveDispatch error. Discord Member ID: %s", dmr.User.ID)
 
 	}
 }
