@@ -2,15 +2,13 @@ package main
 
 import (
 	"fmt"
-	"naka-disc/discord-bot-golang/internal/app/entity"
+	"naka-disc/discord-bot-golang/internal/app/dao"
 	"naka-disc/discord-bot-golang/internal/app/service"
 	"os"
 	"os/signal"
 	"syscall"
 
 	"github.com/bwmarrin/discordgo"
-	"gorm.io/driver/sqlite"
-	"gorm.io/gorm"
 )
 
 // 初期処理。
@@ -19,12 +17,8 @@ func init() {
 	fmt.Println("naka-disc/discord-bot-golang init")
 
 	// TODO: DBのマイグレーション処理を暫定でここに挿入 別途コマンドとかにした方が良さげ
-	db, err := gorm.Open(sqlite.Open("database/database.sqlite"), &gorm.Config{})
-	if err != nil {
-		panic("failed to connect database")
-	}
-	db.AutoMigrate(entity.NewVcAccessLog())
-	db.AutoMigrate(entity.NewDiscordMember())
+	dao.Migration()
+
 }
 
 // エントリーポイント。
