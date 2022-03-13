@@ -17,29 +17,26 @@ func GuildAddDispatch(s *discordgo.Session, gma *discordgo.GuildMemberAdd) {
 	// ただし個人情報にあたるので、収集するのはリスキー いらないなら取らないのが無難
 
 	// DiscordのメンバーIDから、メンバー情報取得
-	memDAO := dao.NewDiscordMemberDAO()
-	getEntity, ok := memDAO.GetDiscordMemberByMemberId(gma.User.ID)
+	e, ok := dao.GetDiscordMemberByMemberId(gma.User.ID)
 
 	// あれば更新、なければ新規登録で分岐
 	if ok {
-		// データが既にある場合
-		// 一部情報を最新化して更新
-		joinCount := getEntity.JoinCount + 1
-		overrideMap := map[string]interface{}{"join_count": joinCount, "is_stay": true, "last_join_datetime": dateutil.GetNowString()}
-		memDAO.EditDiscordMember(getEntity, overrideMap)
+		// データが既にある場合、一部情報を最新化して更新
+		joinCount := e.JoinCount + 1
+		om := map[string]interface{}{"join_count": joinCount, "is_stay": true, "last_join_datetime": dateutil.GetNowString()}
+		dao.EditDiscordMember(e, om)
 
 	} else {
-		// 新規参加メンバーの場合
-		saveEntity := entity.NewDiscordMember()
-		saveEntity.DiscordMemberId = gma.User.ID
-		saveEntity.DiscordMemberName = gma.User.Username
-		saveEntity.DiscordMemberDiscriminator = gma.User.Discriminator
-		saveEntity.JoinCount = 1
-		saveEntity.IsBot = gma.User.Bot
-		saveEntity.IsStay = true
-		saveEntity.FirstJoinDatetime = dateutil.GetNowString()
-		saveEntity.LastJoinDatetime = dateutil.GetNowString()
-		memDAO.AddDiscordMember(saveEntity)
+		// 新規参加メンバーの場合、新規でデータを登録
+		e := entity.NewDiscordMember()
+		e.DiscordMemberId = gma.User.ID
+		e.DiscordMemberName = gma.User.Username
+		e.JoinCount = 1
+		e.IsBot = gma.User.Bot
+		e.IsStay = true
+		e.FirstJoinDatetime = dateutil.GetNowString()
+		e.LastJoinDatetime = dateutil.GetNowString()
+		dao.AddDiscordMember(e)
 
 	}
 }
